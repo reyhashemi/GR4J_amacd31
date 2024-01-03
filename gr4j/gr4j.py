@@ -76,14 +76,14 @@ def gr4j(precip, potential_evap, params, states = None, return_state = False):
     for P, E in zip(precip, potential_evap):
 
         if P > E:
-            net_evap = 0
-            scaled_net_precip = (P - E)/X1
+            net_evap = 0                            # En=0 (equation 1)
+            scaled_net_precip = (P - E)/X1          # Pn/X1
             if scaled_net_precip > 13:
                 scaled_net_precip = 13.
             tanh_scaled_net_precip = tanh(scaled_net_precip)
-            reservoir_production = (X1 * (1 - (production_store/X1)**2) * tanh_scaled_net_precip) / (1 + production_store/X1 * tanh_scaled_net_precip)
+            reservoir_production = (X1 * (1 - (production_store/X1)**2) * tanh_scaled_net_precip) / (1 + production_store/X1 * tanh_scaled_net_precip)    # Ps
 
-            routing_pattern = P-E-reservoir_production
+            routing_pattern = P-E-reservoir_production    # Pn - Ps
         else:
             scaled_net_evap = (E - P)/X1
             if scaled_net_evap > 13:
@@ -91,15 +91,15 @@ def gr4j(precip, potential_evap, params, states = None, return_state = False):
             tanh_scaled_net_evap = tanh(scaled_net_evap)
 
             ps_div_x1 = (2 - production_store/X1) * tanh_scaled_net_evap
-            net_evap = production_store * (ps_div_x1) / \
+            net_evap = production_store * (ps_div_x1) / \                    # Es
                     (1 + (1 - production_store/X1) * tanh_scaled_net_evap)
 
             reservoir_production = 0
             routing_pattern = 0
 
-        production_store = production_store - net_evap + reservoir_production
+        production_store = production_store - net_evap + reservoir_production    # S (equation 5)
 
-        percolation = production_store / (1 + (production_store/2.25/X1)**4)**0.25
+        percolation = production_store / (1 + (production_store/2.25/X1)**4)**0.25        # Perc (different from equation 6)
 
         routing_pattern = routing_pattern + (production_store-percolation)
         production_store = percolation
@@ -113,10 +113,10 @@ def gr4j(precip, potential_evap, params, states = None, return_state = False):
             UH2[j] = UH2[j+1] + uh2_ordinates[j]*routing_pattern
         UH2[-1] = uh2_ordinates[-1] * routing_pattern
 
-        groundwater_exchange = X2 * (routing_store / X3)**3.5
-        routing_store = max(0, routing_store + UH1[0] * 0.9 + groundwater_exchange)
+        groundwater_exchange = X2 * (routing_store / X3)**3.5                            # F (equation 18)
+        routing_store = max(0, routing_store + UH1[0] * 0.9 + groundwater_exchange)      # equation 19
 
-        R2 = routing_store / (1 + (routing_store / X3)**4)**0.25
+        R2 = routing_store / (1 + (routing_store / X3)**4)**0.25                         # Qr (equation 20)
         QR = routing_store - R2
         routing_store = R2
         QD = max(0, UH2[0]*0.1+groundwater_exchange)
